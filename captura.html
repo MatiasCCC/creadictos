@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Captura Automática</title>
+</head>
+<body>
+    <video id="video" width="640" height="480" autoplay></video>
+    <button id="capture" style="display: none;">Capturar Foto</button>
+    <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+
+    <script>
+        async function setupCamera() {
+            const video = document.getElementById('video');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (error) {
+                console.error("Error al acceder a la cámara:", error);
+            }
+        }
+
+        // Revisa el archivo trigger.json cada 5 segundos
+        setInterval(async () => {
+            const response = await fetch('trigger.json');
+            const data = await response.json();
+
+            if (data.trigger) {
+                // Desactiva el trigger inmediatamente llamando a reset_trigger.php
+                await fetch('reset_trigger.php');
+
+                // Simula un clic para capturar la foto
+                document.getElementById('capture').click();
+            }
+        }, 5000); // Cambiado a 5 segundos
+
+        // Captura la imagen y la envía al servidor
+        document.getElementById('capture').addEventListener('click', () => {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('photo', blob, 'captura.png');
+                await fetch('guardar_foto.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                alert("Foto capturada y enviada.");
+            });
+        });
+
+        setupCamera();
+    </script>
+</body>
+</html>
